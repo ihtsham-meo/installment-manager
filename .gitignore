@@ -1,0 +1,7 @@
+node_modules/
+dist/
+build/
+electron/resources/mysql-portable/
+electron/mysql-data/
+.env
+electron/resources/mysql-data/
