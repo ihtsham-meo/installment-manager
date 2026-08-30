@@ -2,6 +2,7 @@ const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const mysqlManager = require("./mysql-manager");
 const registerProductHandlers = require("./ipc-handlers/products");
+const registerCustomerHandlers = require('./ipc-handlers/customers');
 
 let mainWindow;
 
@@ -31,6 +32,7 @@ app.whenReady().then(async () => {
     return;
   }
   registerProductHandlers();
+  registerCustomerHandlers();
   createWindow();
 });
 
