@@ -62,7 +62,16 @@ function registerProductHandlers() {
   });
 
   ipcMain.handle("products:delete", async (event, id) => {
-    await pool.query("DELETE FROM products WHERE id=?", [id]);
+    try {
+      await pool.query("DELETE FROM products WHERE id=?", [id]);
+    } catch (err) {
+      if (err.code === "ER_ROW_IS_REFERENCED_2") {
+        throw new Error(
+          "Cannot delete this product because it is used in sale records.",
+        );
+      }
+      throw err;
+    }
     return { id };
   });
 }

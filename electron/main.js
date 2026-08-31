@@ -3,6 +3,7 @@ const path = require("path");
 const mysqlManager = require("./mysql-manager");
 const registerProductHandlers = require("./ipc-handlers/products");
 const registerCustomerHandlers = require('./ipc-handlers/customers');
+const registerSalesHandlers = require('./ipc-handlers/sales');
 
 let mainWindow;
 
@@ -33,6 +34,7 @@ app.whenReady().then(async () => {
   }
   registerProductHandlers();
   registerCustomerHandlers();
+  registerSalesHandlers();
   createWindow();
 });
 

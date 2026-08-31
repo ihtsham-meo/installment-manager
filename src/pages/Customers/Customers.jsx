@@ -65,8 +65,13 @@ export default function Customers() {
     setEditingId(c.id);
   };
   const handleDelete = async (id) => {
-    await customerService.delete(id);
-    loadCustomers();
+    try {
+      await customerService.delete(id);
+      setError("");
+      loadCustomers();
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (

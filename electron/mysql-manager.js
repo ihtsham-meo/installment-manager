@@ -35,24 +35,43 @@ function initializeDataDir() {
 
 function startMySQL() {
   return new Promise((resolve, reject) => {
+    let resolved = false;
     mysqldProcess = spawn(MYSQLD_PATH, [
       `--defaults-file=${CONFIG_PATH}`,
       `--datadir=${DATA_DIR}`,
     ]);
 
-    mysqldProcess.stderr.on("data", (data) => {
+    mysqldProcess.stderr.on('data', (data) => {
       const msg = data.toString();
       console.log(`[mysqld] ${msg}`);
-      if (msg.includes("ready for connections")) resolve();
+      if (!resolved && msg.includes('ready for connections')) {
+        resolved = true;
+        resolve();
+      }
     });
-    mysqldProcess.on("error", reject);
-    mysqldProcess.on("exit", (code) => {
+
+    mysqldProcess.on('error', (err) => {
+      if (!resolved) { resolved = true; reject(err); }
+    });
+
+    mysqldProcess.on('exit', (code) => {
       console.log(`mysqld exited with code ${code}`);
+      if (!resolved && code !== 0) {
+        resolved = true;
+        reject(new Error(`mysqld exited early (code ${code}) — port 3307 may already be in use`));
+      }
       mysqldProcess = null;
     });
-    setTimeout(resolve, 5000); // fallback in case the log line format differs
+
+    setTimeout(() => {
+      if (!resolved && mysqldProcess) {
+        resolved = true;
+        resolve();
+      }
+    }, 8000);
   });
 }
+
 
 function stopMySQL() {
   if (mysqldProcess) {
@@ -110,13 +129,25 @@ async function ensureDatabaseAndSchema() {
 }
 
 async function initAndStart() {
-  if (!isInitialized()) {
-    console.log("Initializing MySQL data directory...");
-    await initializeDataDir();
+  let serverRunning = true;
+  try {
+    await waitForConnection(1);
+  } catch {
+    serverRunning = false;
   }
-  console.log("Starting MySQL server...");
-  await startMySQL();
-  await waitForConnection();
+
+  if (!serverRunning) {
+    if (!isInitialized()) {
+      console.log("Initializing MySQL data directory...");
+      await initializeDataDir();
+    }
+    console.log("Starting MySQL server...");
+    await startMySQL();
+    await waitForConnection();
+  } else {
+    console.log("Using existing MySQL server...");
+  }
+
   await ensureDatabaseAndSchema();
   console.log("MySQL ready and schema applied.");
 }

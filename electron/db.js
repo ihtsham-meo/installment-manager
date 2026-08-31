@@ -1,5 +1,11 @@
-const mysql = require('mysql2/promise');
-const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = require('./mysql-manager');
+const mysql = require("mysql2/promise");
+const {
+  DB_HOST,
+  DB_PORT,
+  DB_USER,
+  DB_PASSWORD,
+  DB_NAME,
+} = require("./mysql-manager");
 
 const pool = mysql.createPool({
   host: DB_HOST,
@@ -9,6 +15,7 @@ const pool = mysql.createPool({
   database: DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
+  dateStrings: true,
 });
 
 module.exports = pool;

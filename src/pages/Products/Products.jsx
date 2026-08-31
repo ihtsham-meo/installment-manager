@@ -13,6 +13,7 @@ export default function Products() {
     unit: "pcs",
   });
   const [editingId, setEditingId] = useState(null);
+  const [error, setError] = useState("");
 
   const loadProducts = async () => setProducts(await productService.list());
 
@@ -48,13 +49,19 @@ export default function Products() {
     setEditingId(p.id);
   };
   const handleDelete = async (id) => {
-    await productService.delete(id);
-    loadProducts();
+    try {
+      await productService.delete(id);
+      setError("");
+      loadProducts();
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
     <div>
       <h2>Products</h2>
+      {error && <p style={{ color: "red" }}>{error}</p>}
       <form onSubmit={handleSubmit}>
         <input
           name="name"
