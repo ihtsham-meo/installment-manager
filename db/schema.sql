@@ -26,19 +26,28 @@ CREATE TABLE IF NOT EXISTS customers (
     cnic VARCHAR(20) UNIQUE,
     phone VARCHAR(20),
     address VARCHAR(255),
-    guarantor_name VARCHAR(100),
-    guarantor_cnic VARCHAR(20),
-    guarantor_phone VARCHAR(20),
     photo_path VARCHAR(255),
     doc_path VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (branch_id) REFERENCES branches(id)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS customer_guarantors (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    cnic VARCHAR(20),
+    phone VARCHAR(20),
+    doc_path VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     branch_id INT DEFAULT 1,
     name VARCHAR(150) NOT NULL,
+    company VARCHAR(100),
     category VARCHAR(100),
     barcode VARCHAR(100),
     cost_price DECIMAL(12,2) NOT NULL,
