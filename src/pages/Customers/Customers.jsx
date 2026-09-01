@@ -1,21 +1,25 @@
 import { useEffect, useState } from "react";
 import { customerService } from "../../services/customers";
+import {
+  sanitizeName,
+  sanitizePhone,
+  formatCnic,
+} from "../../utils/validation";
 
-const emptyForm = {
+const emptyCustomer = {
   full_name: "",
   cnic: "",
   phone: "",
   address: "",
-  guarantor_name: "",
-  guarantor_cnic: "",
-  guarantor_phone: "",
   photo_path: "",
   doc_path: "",
 };
+const emptyGuarantor = { name: "", cnic: "", phone: "", doc_path: "" };
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(emptyCustomer);
+  const [guarantors, setGuarantors] = useState([{ ...emptyGuarantor }]);
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState("");
 
@@ -24,8 +28,14 @@ export default function Customers() {
     loadCustomers();
   }, []);
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleNameChange = (e) =>
+    setForm({ ...form, full_name: sanitizeName(e.target.value) });
+  const handlePhoneChange = (e) =>
+    setForm({ ...form, phone: sanitizePhone(e.target.value) });
+  const handleCnicChange = (e) =>
+    setForm({ ...form, cnic: formatCnic(e.target.value) });
+  const handleAddressChange = (e) =>
+    setForm({ ...form, address: e.target.value });
 
   const handleCnicBlur = async () => {
     if (!form.cnic || editingId) return;
@@ -34,24 +44,45 @@ export default function Customers() {
   };
 
   const handleSelectPhoto = async () => {
-    const path = await customerService.selectFile();
-    if (path) setForm({ ...form, photo_path: path });
+    const p = await customerService.selectFile();
+    if (p) setForm({ ...form, photo_path: p });
+  };
+  const handleSelectDoc = async () => {
+    const p = await customerService.selectFile();
+    if (p) setForm({ ...form, doc_path: p });
   };
 
-  const handleSelectDoc = async () => {
-    const path = await customerService.selectFile();
-    if (path) setForm({ ...form, doc_path: path });
+  const updateGuarantor = (idx, field, value) => {
+    const updated = [...guarantors];
+    if (field === "name") value = sanitizeName(value);
+    if (field === "phone") value = sanitizePhone(value);
+    if (field === "cnic") value = formatCnic(value);
+    updated[idx][field] = value;
+    setGuarantors(updated);
+  };
+  const addGuarantorRow = () =>
+    setGuarantors([...guarantors, { ...emptyGuarantor }]);
+  const removeGuarantorRow = (idx) =>
+    setGuarantors(guarantors.filter((_, i) => i !== idx));
+  const selectGuarantorDoc = async (idx) => {
+    const p = await customerService.selectFile();
+    if (p) updateGuarantor(idx, "doc_path", p);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        customer: form,
+        guarantors: guarantors.filter((g) => g.name.trim()),
+      };
       if (editingId) {
-        await customerService.update(editingId, form);
+        await customerService.update({ id: editingId, ...payload });
       } else {
-        await customerService.add(form);
+        await customerService.add(payload);
       }
-      setForm(emptyForm);
+      setForm(emptyCustomer);
+      setGuarantors([{ ...emptyGuarantor }]);
       setEditingId(null);
       setError("");
       loadCustomers();
@@ -60,18 +91,15 @@ export default function Customers() {
     }
   };
 
-  const handleEdit = (c) => {
+  const handleEdit = async (c) => {
     setForm(c);
     setEditingId(c.id);
+    const gs = await customerService.getGuarantors(c.id);
+    setGuarantors(gs.length ? gs : [{ ...emptyGuarantor }]);
   };
   const handleDelete = async (id) => {
-    try {
-      await customerService.delete(id);
-      setError("");
-      loadCustomers();
-    } catch (err) {
-      setError(err.message);
-    }
+    await customerService.delete(id);
+    loadCustomers();
   };
 
   return (
@@ -80,48 +108,27 @@ export default function Customers() {
       {error && <p style={{ color: "red" }}>{error}</p>}
       <form onSubmit={handleSubmit}>
         <input
-          name="full_name"
           placeholder="Full Name"
           value={form.full_name}
-          onChange={handleChange}
+          onChange={handleNameChange}
           required
         />
         <input
-          name="cnic"
-          placeholder="CNIC"
+          placeholder="CNIC (12345-1234567-1)"
           value={form.cnic}
-          onChange={handleChange}
+          onChange={handleCnicChange}
           onBlur={handleCnicBlur}
+          maxLength={15}
         />
         <input
-          name="phone"
           placeholder="Phone"
           value={form.phone}
-          onChange={handleChange}
+          onChange={handlePhoneChange}
         />
         <input
-          name="address"
           placeholder="Address"
           value={form.address}
-          onChange={handleChange}
-        />
-        <input
-          name="guarantor_name"
-          placeholder="Guarantor Name"
-          value={form.guarantor_name}
-          onChange={handleChange}
-        />
-        <input
-          name="guarantor_cnic"
-          placeholder="Guarantor CNIC"
-          value={form.guarantor_cnic}
-          onChange={handleChange}
-        />
-        <input
-          name="guarantor_phone"
-          placeholder="Guarantor Phone"
-          value={form.guarantor_phone}
-          onChange={handleChange}
+          onChange={handleAddressChange}
         />
         <button type="button" onClick={handleSelectPhoto}>
           Select Photo
@@ -129,6 +136,40 @@ export default function Customers() {
         <button type="button" onClick={handleSelectDoc}>
           Select CNIC/Doc
         </button>
+
+        <h4>Guarantors</h4>
+        {guarantors.map((g, idx) => (
+          <div key={idx}>
+            <input
+              placeholder="Guarantor Name"
+              value={g.name}
+              onChange={(e) => updateGuarantor(idx, "name", e.target.value)}
+            />
+            <input
+              placeholder="Guarantor CNIC"
+              value={g.cnic}
+              onChange={(e) => updateGuarantor(idx, "cnic", e.target.value)}
+              maxLength={15}
+            />
+            <input
+              placeholder="Guarantor Phone"
+              value={g.phone}
+              onChange={(e) => updateGuarantor(idx, "phone", e.target.value)}
+            />
+            <button type="button" onClick={() => selectGuarantorDoc(idx)}>
+              Select Doc
+            </button>
+            {guarantors.length > 1 && (
+              <button type="button" onClick={() => removeGuarantorRow(idx)}>
+                Remove
+              </button>
+            )}
+          </div>
+        ))}
+        <button type="button" onClick={addGuarantorRow}>
+          + Add Another Guarantor
+        </button>
+
         <button type="submit">{editingId ? "Update" : "Add"} Customer</button>
       </form>
 
@@ -138,7 +179,6 @@ export default function Customers() {
             <th>Name</th>
             <th>CNIC</th>
             <th>Phone</th>
-            <th>Guarantor</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -148,7 +188,6 @@ export default function Customers() {
               <td>{c.full_name}</td>
               <td>{c.cnic}</td>
               <td>{c.phone}</td>
-              <td>{c.guarantor_name}</td>
               <td>
                 <button onClick={() => handleEdit(c)}>Edit</button>
                 <button onClick={() => handleDelete(c.id)}>Delete</button>

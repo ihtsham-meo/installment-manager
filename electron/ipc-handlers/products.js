@@ -12,6 +12,7 @@ function registerProductHandlers() {
   ipcMain.handle("products:add", async (event, product) => {
     const {
       name,
+      company,
       category,
       barcode,
       cost_price,
@@ -20,10 +21,10 @@ function registerProductHandlers() {
       unit,
     } = product;
     const [result] = await pool.query(
-      `INSERT INTO products (name, category, barcode, cost_price, sale_price, stock_quantity, unit)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO products (name, company, category, barcode, cost_price, sale_price, stock_quantity, unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name,
+        company || null,
         category,
         barcode || null,
         cost_price,
@@ -38,6 +39,7 @@ function registerProductHandlers() {
   ipcMain.handle("products:update", async (event, id, product) => {
     const {
       name,
+      company,
       category,
       barcode,
       cost_price,
@@ -46,9 +48,10 @@ function registerProductHandlers() {
       unit,
     } = product;
     await pool.query(
-      `UPDATE products SET name=?, category=?, barcode=?, cost_price=?, sale_price=?, stock_quantity=?, unit=? WHERE id=?`,
+      `UPDATE products SET name=?, company=?, category=?, barcode=?, cost_price=?, sale_price=?, stock_quantity=?, unit=? WHERE id=?`,
       [
         name,
+        company || null,
         category,
         barcode || null,
         cost_price,

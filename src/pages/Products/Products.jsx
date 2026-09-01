@@ -71,6 +71,12 @@ export default function Products() {
           required
         />
         <input
+          name="company"
+          placeholder="Company"
+          value={form.company}
+          onChange={handleChange}
+        />
+        <input
           name="category"
           placeholder="Category"
           value={form.category}

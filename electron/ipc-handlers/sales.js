@@ -20,6 +20,17 @@ function registerSalesHandlers() {
     return rows;
   });
 
+  ipcMain.handle(
+    "sales:updateScheduleRow",
+    async (event, { scheduleId, due_date, due_amount }) => {
+      await pool.query(
+        "UPDATE installment_schedule SET due_date = ?, due_amount = ? WHERE id = ?",
+        [due_date, due_amount, scheduleId],
+      );
+      return { id: scheduleId, due_date, due_amount };
+    },
+  );
+
   ipcMain.handle("sales:create", async (event, saleData) => {
     const {
       customer_id,

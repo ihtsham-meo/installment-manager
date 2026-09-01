@@ -223,15 +223,49 @@ export default function Sales() {
                 <th>Due Date</th>
                 <th>Amount</th>
                 <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {selectedSchedule.map((row) => (
+              {selectedSchedule.map((row, idx) => (
                 <tr key={row.id}>
                   <td>{row.installment_no}</td>
-                  <td>{row.due_date}</td>
-                  <td>{row.due_amount}</td>
+                  <td>
+                    <input
+                      type="date"
+                      value={row.due_date}
+                      onChange={(e) => {
+                        const updated = [...selectedSchedule];
+                        updated[idx].due_date = e.target.value;
+                        setSelectedSchedule(updated);
+                      }}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      value={row.due_amount}
+                      onChange={(e) => {
+                        const updated = [...selectedSchedule];
+                        updated[idx].due_amount = e.target.value;
+                        setSelectedSchedule(updated);
+                      }}
+                    />
+                  </td>
                   <td>{row.status}</td>
+                  <td>
+                    <button
+                      onClick={() =>
+                        saleService.updateScheduleRow({
+                          scheduleId: row.id,
+                          due_date: row.due_date,
+                          due_amount: row.due_amount,
+                        })
+                      }
+                    >
+                      Save
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
