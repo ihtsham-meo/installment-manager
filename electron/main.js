@@ -2,8 +2,12 @@ const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const mysqlManager = require("./mysql-manager");
 const registerProductHandlers = require("./ipc-handlers/products");
-const registerCustomerHandlers = require('./ipc-handlers/customers');
-const registerSalesHandlers = require('./ipc-handlers/sales');
+const registerCustomerHandlers = require("./ipc-handlers/customers");
+const registerSalesHandlers = require("./ipc-handlers/sales");
+const registerPaymentHandlers = require("./ipc-handlers/payments");
+const { applyLateFees } = require("./utils/lateFees");
+
+// inside app.whenReady(), after the other registerXHandlers():
 
 let mainWindow;
 
@@ -35,6 +39,8 @@ app.whenReady().then(async () => {
   registerProductHandlers();
   registerCustomerHandlers();
   registerSalesHandlers();
+  registerPaymentHandlers();
+  await applyLateFees();
   createWindow();
 });
 

@@ -22,9 +22,17 @@ contextBridge.exposeInMainWorld("api", {
 
   sales: {
     list: () => ipcRenderer.invoke("sales:list"),
+    summary: () => ipcRenderer.invoke("sales:summary"),
     getSchedule: (saleId) => ipcRenderer.invoke("sales:getSchedule", saleId),
     create: (saleData) => ipcRenderer.invoke("sales:create", saleData),
     void: (payload) => ipcRenderer.invoke("sales:void", payload),
-    updateScheduleRow: (payload) => ipcRenderer.invoke('sales:updateScheduleRow', payload),
+    updateScheduleRow: (payload) =>
+      ipcRenderer.invoke("sales:updateScheduleRow", payload),
+  },
+  payments: {
+    listForSale: (saleId) => ipcRenderer.invoke("payments:listForSale", saleId),
+    record: (payload) => ipcRenderer.invoke("payments:record", payload),
+    void: (payload) => ipcRenderer.invoke("payments:void", payload),
+    refreshOverdue: () => ipcRenderer.invoke("payments:refreshOverdue"),
   },
 });
