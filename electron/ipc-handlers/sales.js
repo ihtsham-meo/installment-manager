@@ -157,6 +157,21 @@ function registerSalesHandlers() {
       conn.release();
     }
   });
+
+  ipcMain.handle("sales:summary", async () => {
+    const [rows] = await pool.query(`
+    SELECT s.id, c.full_name AS customer_name, s.total_amount, s.down_payment, s.status,
+      COALESCE(SUM(ish.paid_amount),0) AS total_paid,
+      (s.total_amount - s.down_payment - COALESCE(SUM(ish.paid_amount),0)) AS remaining
+    FROM sales s
+    JOIN customers c ON s.customer_id = c.id
+    LEFT JOIN installment_schedule ish ON ish.sale_id = s.id
+    WHERE s.voided = 0
+    GROUP BY s.id
+    ORDER BY s.sale_date DESC
+  `);
+    return rows;
+  });
 }
 
 module.exports = registerSalesHandlers;
