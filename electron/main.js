@@ -6,8 +6,8 @@ const registerCustomerHandlers = require("./ipc-handlers/customers");
 const registerSalesHandlers = require("./ipc-handlers/sales");
 const registerPaymentHandlers = require("./ipc-handlers/payments");
 const { applyLateFees } = require("./utils/lateFees");
-
-// inside app.whenReady(), after the other registerXHandlers():
+const registerReportHandlers = require("./ipc-handlers/reports");
+// inside app.whenReady(), alongside the others:
 
 let mainWindow;
 
@@ -41,6 +41,7 @@ app.whenReady().then(async () => {
   registerSalesHandlers();
   registerPaymentHandlers();
   await applyLateFees();
+  registerReportHandlers();
   createWindow();
 });
 
