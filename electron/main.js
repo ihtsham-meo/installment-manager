@@ -7,7 +7,8 @@ const registerSalesHandlers = require("./ipc-handlers/sales");
 const registerPaymentHandlers = require("./ipc-handlers/payments");
 const { applyLateFees } = require("./utils/lateFees");
 const registerReportHandlers = require("./ipc-handlers/reports");
-// inside app.whenReady(), alongside the others:
+const registerBackupHandlers = require('./ipc-handlers/backup');
+const backupManager = require('./backup-manager');
 
 let mainWindow;
 
@@ -42,14 +43,18 @@ app.whenReady().then(async () => {
   registerPaymentHandlers();
   await applyLateFees();
   registerReportHandlers();
+  registerBackupHandlers();
+  backupManager.runScheduledBackupIfDue('default-backup-passphrase-change-me').catch(console.error);
   createWindow();
 });
 
 app.on("window-all-closed", () => {
   mysqlManager.stopMySQL();
   if (process.platform !== "darwin") app.quit();
+
 });
 
 app.on("before-quit", () => {
   mysqlManager.stopMySQL();
+
 });

@@ -45,4 +45,11 @@ contextBridge.exposeInMainWorld("api", {
     profit: () => ipcRenderer.invoke("reports:profit"),
     exportCsv: (payload) => ipcRenderer.invoke("reports:exportCsv", payload),
   },
+
+  backup: {
+    create: (passphrase) => ipcRenderer.invoke("backup:create", { passphrase }),
+    restore: (passphrase) =>
+      ipcRenderer.invoke("backup:restore", { passphrase }),
+    list: () => ipcRenderer.invoke("backup:list"),
+  },
 });
