@@ -25,7 +25,10 @@ export default function App() {
         <Customers />
       ) : page === "sales" ? (
         <Sales />
-      ) : page === "dashboard" ? (
+      ) : page === "payments" ? (
+        <Payments />
+      )
+       : page === "dashboard" ? (
         <Dashboard />
       ) : page === "reports" ? (
         <Reports />
