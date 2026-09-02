@@ -5,6 +5,7 @@ import Sales from "./pages/Sales/Sales.jsx";
 import Payments from "./pages/Payments/Payments.jsx";
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import Reports from "./pages/Reports/Reports.jsx";
+import Backup from './pages/Backup/Backup.jsx';
 
 export default function App() {
   const [page, setPage] = useState("products");
@@ -18,6 +19,7 @@ export default function App() {
         <button onClick={() => setPage("payments")}>Payments</button>
         <button onClick={() => setPage("dashboard")}>Dashboard</button>
         <button onClick={() => setPage("reports")}>Reports</button>
+        <button onClick={() => setPage("backup")}>Backup</button>
       </nav>
       {page === "products" ? (
         <Products />
@@ -32,6 +34,8 @@ export default function App() {
         <Dashboard />
       ) : page === "reports" ? (
         <Reports />
+      ) : page === "backup" ? (
+        <Backup />
       ) : (
         <Products />
       )}
