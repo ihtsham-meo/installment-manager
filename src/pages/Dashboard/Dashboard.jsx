@@ -3,11 +3,9 @@ import { reportService } from "../../services/reports";
 
 function Card({ label, value }) {
   return (
-    <div
-      style={{ border: "1px solid #ccc", padding: "12px", minWidth: "150px" }}
-    >
-      <div>{label}</div>
-      <strong>{value}</strong>
+    <div className="border border-gray-200 dark:border-neutral-700 rounded-lg p-4 min-w-[160px] bg-white dark:bg-neutral-800 shadow-sm">
+      <div className="text-sm text-gray-500 dark:text-gray-400">{label}</div>
+      <strong className="text-2xl">{value}</strong>
     </div>
   );
 }
@@ -21,8 +19,8 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h2>Dashboard</h2>
-      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+      <h2 className="text-xl font-bold mb-4">Dashboard</h2>
+      <div className="flex gap-4 flex-wrap">
         <Card label="Today's Due" value={data.todayDue} />
         <Card label="Today's Collected" value={data.todayCollected} />
         <Card label="Total Outstanding" value={data.totalOutstanding} />

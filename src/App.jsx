@@ -10,6 +10,7 @@ import Backup from "./pages/Backup/Backup.jsx";
 import Users from "./pages/Users/Users.jsx";
 import Setup from "./pages/Auth/Setup.jsx";
 import Login from "./pages/Auth/Login.jsx";
+import Layout from "./components/Layout.jsx";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -30,35 +31,23 @@ export default function App() {
     })();
   }, []);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <p className="p-6">Loading...</p>;
   if (needsSetup) return <Setup onDone={() => setNeedsSetup(false)} />;
   if (!user) return <Login onLogin={setUser} />;
 
   const isAdmin = user.role === "admin";
 
   return (
-    <div>
-      <nav>
-        <span>
-          {user.full_name} ({user.role})
-        </span>
-        <button onClick={() => setPage("dashboard")}>Dashboard</button>
-        <button onClick={() => setPage("products")}>Products</button>
-        <button onClick={() => setPage("customers")}>Customers</button>
-        <button onClick={() => setPage("sales")}>Sales</button>
-        <button onClick={() => setPage("payments")}>Payments</button>
-        <button onClick={() => setPage("reports")}>Reports</button>
-        <button onClick={() => setPage("backup")}>Backup</button>
-        {isAdmin && <button onClick={() => setPage("users")}>Users</button>}
-        <button
-          onClick={async () => {
-            await authService.logout();
-            setUser(null);
-          }}
-        >
-          Logout
-        </button>
-      </nav>
+    <Layout
+      user={user}
+      page={page}
+      setPage={setPage}
+      isAdmin={isAdmin}
+      onLogout={async () => {
+        await authService.logout();
+        setUser(null);
+      }}
+    >
       {page === "dashboard" && <Dashboard />}
       {page === "products" && <Products />}
       {page === "customers" && <Customers />}
@@ -67,6 +56,6 @@ export default function App() {
       {page === "reports" && <Reports />}
       {page === "backup" && <Backup />}
       {page === "users" && isAdmin && <Users />}
-    </div>
+    </Layout>
   );
 }
