@@ -5,6 +5,7 @@ import {
   sanitizePhone,
   formatCnic,
 } from "../../utils/validation";
+import { Card, Button, Input, Table, ErrorText } from "../../components/ui";
 
 const emptyCustomer = {
   full_name: "",
@@ -76,11 +77,9 @@ export default function Customers() {
         customer: form,
         guarantors: guarantors.filter((g) => g.name.trim()),
       };
-      if (editingId) {
+      if (editingId)
         await customerService.update({ id: editingId, ...payload });
-      } else {
-        await customerService.add(payload);
-      }
+      else await customerService.add(payload);
       setForm(emptyCustomer);
       setGuarantors([{ ...emptyGuarantor }]);
       setEditingId(null);
@@ -103,99 +102,122 @@ export default function Customers() {
   };
 
   return (
-    <div>
-      <h2>Customers</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <input
-          placeholder="Full Name"
-          value={form.full_name}
-          onChange={handleNameChange}
-          required
-        />
-        <input
-          placeholder="CNIC (12345-1234567-1)"
-          value={form.cnic}
-          onChange={handleCnicChange}
-          onBlur={handleCnicBlur}
-          maxLength={15}
-        />
-        <input
-          placeholder="Phone"
-          value={form.phone}
-          onChange={handlePhoneChange}
-        />
-        <input
-          placeholder="Address"
-          value={form.address}
-          onChange={handleAddressChange}
-        />
-        <button type="button" onClick={handleSelectPhoto}>
-          Select Photo
-        </button>
-        <button type="button" onClick={handleSelectDoc}>
-          Select CNIC/Doc
-        </button>
-
-        <h4>Guarantors</h4>
-        {guarantors.map((g, idx) => (
-          <div key={idx}>
-            <input
-              placeholder="Guarantor Name"
-              value={g.name}
-              onChange={(e) => updateGuarantor(idx, "name", e.target.value)}
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold">Customers</h2>
+      <Card>
+        <ErrorText>{error}</ErrorText>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Input
+              placeholder="Full Name"
+              value={form.full_name}
+              onChange={handleNameChange}
+              required
             />
-            <input
-              placeholder="Guarantor CNIC"
-              value={g.cnic}
-              onChange={(e) => updateGuarantor(idx, "cnic", e.target.value)}
+            <Input
+              placeholder="CNIC (12345-1234567-1)"
+              value={form.cnic}
+              onChange={handleCnicChange}
+              onBlur={handleCnicBlur}
               maxLength={15}
             />
-            <input
-              placeholder="Guarantor Phone"
-              value={g.phone}
-              onChange={(e) => updateGuarantor(idx, "phone", e.target.value)}
+            <Input
+              placeholder="Phone"
+              value={form.phone}
+              onChange={handlePhoneChange}
             />
-            <button type="button" onClick={() => selectGuarantorDoc(idx)}>
-              Select Doc
-            </button>
-            {guarantors.length > 1 && (
-              <button type="button" onClick={() => removeGuarantorRow(idx)}>
-                Remove
-              </button>
-            )}
+            <Input
+              placeholder="Address"
+              value={form.address}
+              onChange={handleAddressChange}
+            />
           </div>
-        ))}
-        <button type="button" onClick={addGuarantorRow}>
-          + Add Another Guarantor
-        </button>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleSelectPhoto}
+            >
+              Select Photo
+            </Button>
+            <Button type="button" variant="secondary" onClick={handleSelectDoc}>
+              Select CNIC/Doc
+            </Button>
+          </div>
 
-        <button type="submit">{editingId ? "Update" : "Add"} Customer</button>
-      </form>
+          <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-300">
+            Guarantors
+          </h4>
+          {guarantors.map((g, idx) => (
+            <div
+              key={idx}
+              className="grid grid-cols-2 md:grid-cols-5 gap-3 items-center"
+            >
+              <Input
+                placeholder="Guarantor Name"
+                value={g.name}
+                onChange={(e) => updateGuarantor(idx, "name", e.target.value)}
+              />
+              <Input
+                placeholder="Guarantor CNIC"
+                value={g.cnic}
+                onChange={(e) => updateGuarantor(idx, "cnic", e.target.value)}
+                maxLength={15}
+              />
+              <Input
+                placeholder="Guarantor Phone"
+                value={g.phone}
+                onChange={(e) => updateGuarantor(idx, "phone", e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => selectGuarantorDoc(idx)}
+              >
+                Select Doc
+              </Button>
+              {guarantors.length > 1 && (
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={() => removeGuarantorRow(idx)}
+                >
+                  Remove
+                </Button>
+              )}
+            </div>
+          ))}
+          <Button type="button" variant="secondary" onClick={addGuarantorRow}>
+            + Add Another Guarantor
+          </Button>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>CNIC</th>
-            <th>Phone</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+          <div>
+            <Button type="submit">
+              {editingId ? "Update" : "Add"} Customer
+            </Button>
+          </div>
+        </form>
+      </Card>
+
+      <Card>
+        <Table headers={["Name", "CNIC", "Phone", "Actions"]}>
           {customers.map((c) => (
             <tr key={c.id}>
-              <td>{c.full_name}</td>
-              <td>{c.cnic}</td>
-              <td>{c.phone}</td>
-              <td>
-                <button onClick={() => handleEdit(c)}>Edit</button>
-                <button onClick={() => handleDelete(c.id)}>Delete</button>
+              <td className="py-2 pr-4">{c.full_name}</td>
+              <td className="py-2 pr-4">{c.cnic}</td>
+              <td className="py-2 pr-4">{c.phone}</td>
+              <td className="py-2 pr-4 space-x-2">
+                <Button variant="secondary" onClick={() => handleEdit(c)}>
+                  Edit
+                </Button>
+                <Button variant="danger" onClick={() => handleDelete(c.id)}>
+                  Delete
+                </Button>
               </td>
             </tr>
           ))}
-        </tbody>
-      </table>
+        </Table>
+      </Card>
     </div>
   );
 }
