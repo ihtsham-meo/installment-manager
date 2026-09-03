@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { backupService } from "../../services/backup";
+import { Card, Button, Input, Table } from "../../components/ui";
 
 export default function Backup() {
   const [passphrase, setPassphrase] = useState("");
@@ -50,43 +51,39 @@ export default function Backup() {
   };
 
   return (
-    <div>
-      <h2>Backup & Restore</h2>
-      {message && <p>{message}</p>}
-      <input
-        type="password"
-        placeholder="Backup passphrase"
-        value={passphrase}
-        onChange={(e) => setPassphrase(e.target.value)}
-      />
-      <button onClick={handleBackup} disabled={busy}>
-        Backup Now (pick local folder or USB drive)
-      </button>
-      <button onClick={handleRestore} disabled={busy}>
-        Restore From Backup
-      </button>
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold">Backup & Restore</h2>
+      <Card className="space-y-3">
+        {message && <p className="text-sm">{message}</p>}
+        <Input
+          type="password"
+          placeholder="Backup passphrase"
+          value={passphrase}
+          onChange={(e) => setPassphrase(e.target.value)}
+        />
+        <div className="flex gap-2">
+          <Button onClick={handleBackup} disabled={busy}>
+            Backup Now (pick local folder or USB drive)
+          </Button>
+          <Button variant="secondary" onClick={handleRestore} disabled={busy}>
+            Restore From Backup
+          </Button>
+        </div>
+      </Card>
 
-      <h3>Backup History</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Path</th>
-            <th>Type</th>
-            <th>Size</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Card>
+        <h3 className="font-semibold mb-3">Backup History</h3>
+        <Table headers={["Path", "Type", "Size", "Date"]}>
           {history.map((b) => (
             <tr key={b.id}>
-              <td>{b.backup_path}</td>
-              <td>{b.backup_type}</td>
-              <td>{b.size_bytes}</td>
-              <td>{b.created_at}</td>
+              <td className="py-2 pr-4 truncate max-w-xs">{b.backup_path}</td>
+              <td className="py-2 pr-4 capitalize">{b.backup_type}</td>
+              <td className="py-2 pr-4">{b.size_bytes}</td>
+              <td className="py-2 pr-4">{b.created_at}</td>
             </tr>
           ))}
-        </tbody>
-      </table>
+        </Table>
+      </Card>
     </div>
   );
 }

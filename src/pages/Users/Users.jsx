@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { userService } from "../../services/users";
 import { auditService } from "../../services/audit";
+import {
+  Card,
+  Button,
+  Input,
+  Select,
+  Table,
+  ErrorText,
+} from "../../components/ui";
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -43,7 +51,6 @@ export default function Users() {
     });
     loadUsers();
   };
-
   const confirmReset = async () => {
     if (!newPassword) return;
     await userService.resetPassword({ id: resettingId, newPassword });
@@ -52,111 +59,105 @@ export default function Users() {
   };
 
   return (
-    <div>
-      <h2>Users</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <input
-          placeholder="Full Name"
-          value={form.full_name}
-          onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-          required
-        />
-        <input
-          placeholder="Username"
-          value={form.username}
-          onChange={(e) => setForm({ ...form, username: e.target.value })}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-          required
-        />
-        <select
-          value={form.role}
-          onChange={(e) => setForm({ ...form, role: e.target.value })}
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold">Users</h2>
+      <Card>
+        <ErrorText>{error}</ErrorText>
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-2 md:grid-cols-5 gap-3"
         >
-          <option value="cashier">Cashier</option>
-          <option value="manager">Manager</option>
-          <option value="admin">Admin</option>
-        </select>
-        <button type="submit">Add User</button>
-      </form>
+          <Input
+            placeholder="Full Name"
+            value={form.full_name}
+            onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+            required
+          />
+          <Input
+            placeholder="Username"
+            value={form.username}
+            onChange={(e) => setForm({ ...form, username: e.target.value })}
+            required
+          />
+          <Input
+            type="password"
+            placeholder="Password"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            required
+          />
+          <Select
+            value={form.role}
+            onChange={(e) => setForm({ ...form, role: e.target.value })}
+          >
+            <option value="cashier">Cashier</option>
+            <option value="manager">Manager</option>
+            <option value="admin">Admin</option>
+          </Select>
+          <Button type="submit">Add User</Button>
+        </form>
+      </Card>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Username</th>
-            <th>Role</th>
-            <th>Active</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Card>
+        <Table headers={["Name", "Username", "Role", "Active", "Actions"]}>
           {users.map((u) => (
             <tr key={u.id}>
-              <td>{u.full_name}</td>
-              <td>{u.username}</td>
-              <td>{u.role}</td>
-              <td>{u.active ? "Yes" : "No"}</td>
-              <td>
-                <button onClick={() => toggleActive(u)}>
+              <td className="py-2 pr-4">{u.full_name}</td>
+              <td className="py-2 pr-4">{u.username}</td>
+              <td className="py-2 pr-4 capitalize">{u.role}</td>
+              <td className="py-2 pr-4">{u.active ? "Yes" : "No"}</td>
+              <td className="py-2 pr-4 space-x-2">
+                <Button variant="secondary" onClick={() => toggleActive(u)}>
                   {u.active ? "Deactivate" : "Activate"}
-                </button>
+                </Button>
                 {resettingId === u.id ? (
-                  <>
-                    <input
+                  <span className="space-x-2">
+                    <Input
+                      className="inline-block w-32"
                       type="password"
                       placeholder="New password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                     />
-                    <button onClick={confirmReset}>Save</button>
-                    <button onClick={() => setResettingId(null)}>Cancel</button>
-                  </>
+                    <Button onClick={confirmReset}>Save</Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setResettingId(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </span>
                 ) : (
-                  <button
+                  <Button
+                    variant="secondary"
                     onClick={() => {
                       setResettingId(u.id);
                       setNewPassword("");
                     }}
                   >
                     Reset Password
-                  </button>
+                  </Button>
                 )}
               </td>
             </tr>
           ))}
-        </tbody>
-      </table>
+        </Table>
+      </Card>
 
-      <h3>Audit Log (latest 200)</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Action</th>
-            <th>Table</th>
-            <th>Record</th>
-            <th>Time</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Card>
+        <h3 className="font-semibold mb-3">Audit Log (latest 200)</h3>
+        <Table headers={["User", "Action", "Table", "Record", "Time"]}>
           {auditLog.map((a) => (
             <tr key={a.id}>
-              <td>{a.username}</td>
-              <td>{a.action}</td>
-              <td>{a.table_name}</td>
-              <td>{a.record_id}</td>
-              <td>{a.timestamp}</td>
+              <td className="py-2 pr-4">{a.username}</td>
+              <td className="py-2 pr-4 capitalize">{a.action}</td>
+              <td className="py-2 pr-4">{a.table_name}</td>
+              <td className="py-2 pr-4">{a.record_id}</td>
+              <td className="py-2 pr-4">{a.timestamp}</td>
             </tr>
           ))}
-        </tbody>
-      </table>
+        </Table>
+      </Card>
     </div>
   );
 }

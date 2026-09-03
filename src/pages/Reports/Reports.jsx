@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { reportService } from "../../services/reports";
+import { Card, Button, Input } from "../../components/ui";
 
 export default function Reports() {
   const [tab, setTab] = useState("collections");
@@ -23,52 +24,77 @@ export default function Reports() {
   const handleExport = async () =>
     reportService.exportCsv({ filename: `${tab}.csv`, rows });
 
+  const tabs = [
+    { key: "collections", label: "Collections" },
+    { key: "defaulters", label: "Defaulters" },
+    { key: "productSales", label: "Product Sales" },
+    { key: "profit", label: "Profit" },
+  ];
+
   return (
-    <div>
-      <h2>Reports</h2>
-      <nav>
-        <button onClick={() => load("collections")}>Collections</button>
-        <button onClick={() => load("defaulters")}>Defaulters</button>
-        <button onClick={() => load("productSales")}>Product Sales</button>
-        <button onClick={() => load("profit")}>Profit</button>
-      </nav>
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold">Reports</h2>
+      <div className="flex gap-2">
+        {tabs.map((t) => (
+          <Button
+            key={t.key}
+            variant={tab === t.key ? "primary" : "secondary"}
+            onClick={() => load(t.key)}
+          >
+            {t.label}
+          </Button>
+        ))}
+      </div>
 
       {tab === "collections" && (
-        <div>
-          <input
+        <Card className="flex gap-3 items-end">
+          <Input
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
           />
-          <input
+          <Input
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
           />
-          <button onClick={() => load("collections")}>Refresh</button>
-        </div>
+          <Button onClick={() => load("collections")}>Refresh</Button>
+        </Card>
       )}
 
-      <button onClick={handleExport} disabled={rows.length === 0}>
+      <Button
+        variant="secondary"
+        onClick={handleExport}
+        disabled={rows.length === 0}
+      >
         Export CSV
-      </button>
+      </Button>
 
-      <table>
-        <thead>
-          <tr>
-            {rows[0] && Object.keys(rows[0]).map((k) => <th key={k}>{k}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>
-              {Object.values(r).map((v, j) => (
-                <td key={j}>{String(v)}</td>
-              ))}
+      <Card>
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="text-left border-b border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-gray-400">
+              {rows[0] &&
+                Object.keys(rows[0]).map((k) => (
+                  <th key={k} className="py-2 pr-4 font-medium">
+                    {k}
+                  </th>
+                ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+            {rows.map((r, i) => (
+              <tr key={i}>
+                {Object.values(r).map((v, j) => (
+                  <td key={j} className="py-2 pr-4">
+                    {String(v)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
     </div>
   );
 }
