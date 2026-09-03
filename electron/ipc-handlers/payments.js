@@ -1,6 +1,8 @@
 const { ipcMain } = require("electron");
 const pool = require("../db");
 const { applyLateFees } = require("../utils/lateFees");
+const { getCurrentUser, requireRole } = require("../session");
+const { logAudit } = require("../audit");
 
 function registerPaymentHandlers() {
   ipcMain.handle("payments:listForSale", async (event, saleId) => {
@@ -63,7 +65,7 @@ function registerPaymentHandlers() {
               row.id,
               applied,
               payment_method || "cash",
-              received_by || null,
+              getCurrentUser()?.id || null,
               notes || null,
             ],
           );
@@ -87,6 +89,7 @@ function registerPaymentHandlers() {
           ]);
         }
 
+        await logAudit("record", "payments", saleId, null, { amount });
         await conn.commit();
         return { payments: created, unallocated: remainingAmount };
       } catch (err) {
@@ -101,6 +104,7 @@ function registerPaymentHandlers() {
   ipcMain.handle(
     "payments:void",
     async (event, { paymentId, reason, voidedBy }) => {
+      requireRole("admin", "manager");
       const conn = await pool.getConnection();
       try {
         await conn.beginTransaction();
@@ -130,13 +134,14 @@ function registerPaymentHandlers() {
         );
         await conn.query(
           `UPDATE payments SET voided=1, voided_by=?, voided_at=NOW(), notes=CONCAT(IFNULL(notes,''), ' [VOID: ', ?, ']') WHERE id=?`,
-          [voidedBy || null, reason, paymentId],
+          [getCurrentUser()?.id || null, reason, paymentId],
         );
         await conn.query(
           `UPDATE sales SET status='active' WHERE id=? AND status='completed'`,
           [payment.sale_id],
         );
 
+        await logAudit("void", "payments", paymentId, null, { reason });
         await conn.commit();
         return { id: paymentId, voided: true };
       } catch (err) {

@@ -1,6 +1,8 @@
 const { ipcMain } = require("electron");
 const pool = require("../db");
 const { generateSchedule } = require("../utils/schedule");
+const { getCurrentUser, requireRole } = require('../session');
+const { logAudit } = require('../audit');
 
 function registerSalesHandlers() {
   ipcMain.handle("sales:list", async () => {
@@ -80,7 +82,7 @@ function registerSalesHandlers() {
           installment_amount,
           plan_start_date,
           frequency || "monthly",
-          created_by || null,
+          getCurrentUser()?.id || null,
         ],
       );
       const saleId = saleResult.insertId;
@@ -117,6 +119,10 @@ function registerSalesHandlers() {
         );
       }
 
+      await logAudit("create", "sales", saleId, null, {
+        total_amount,
+        installment_count,
+      });
       await conn.commit();
       return { id: saleId, total_amount, schedule };
     } catch (err) {
@@ -128,6 +134,7 @@ function registerSalesHandlers() {
   });
 
   ipcMain.handle("sales:void", async (event, { saleId, reason, voidedBy }) => {
+    requireRole("admin", "manager");
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
@@ -145,9 +152,10 @@ function registerSalesHandlers() {
 
       await conn.query(
         `UPDATE sales SET voided = 1, voided_by = ?, voided_at = NOW(), void_reason = ?, status = 'cancelled' WHERE id = ?`,
-        [voidedBy || null, reason, saleId],
+        [getCurrentUser()?.id || null, reason, saleId],
       );
 
+      await logAudit("void", "sales", saleId, null, { reason });
       await conn.commit();
       return { id: saleId, voided: true };
     } catch (err) {

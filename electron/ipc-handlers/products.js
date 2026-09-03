@@ -1,5 +1,7 @@
 const { ipcMain } = require("electron");
 const pool = require("../db");
+const { requireRole } = require("../session");
+const { logAudit } = require("../audit");
 
 function registerProductHandlers() {
   ipcMain.handle("products:list", async () => {
@@ -33,6 +35,7 @@ function registerProductHandlers() {
         unit || "pcs",
       ],
     );
+    await logAudit("create", "products", result.insertId, null, product);
     return { id: result.insertId, ...product };
   });
 
@@ -61,20 +64,14 @@ function registerProductHandlers() {
         id,
       ],
     );
+    await logAudit("update", "products", id, null, product);
     return { id, ...product };
   });
 
   ipcMain.handle("products:delete", async (event, id) => {
-    try {
-      await pool.query("DELETE FROM products WHERE id=?", [id]);
-    } catch (err) {
-      if (err.code === "ER_ROW_IS_REFERENCED_2") {
-        throw new Error(
-          "Cannot delete this product because it is used in sale records.",
-        );
-      }
-      throw err;
-    }
+    requireRole("admin", "manager");
+    await pool.query("DELETE FROM products WHERE id=?", [id]);
+    await logAudit("delete", "products", id, null, null);
     return { id };
   });
 }
