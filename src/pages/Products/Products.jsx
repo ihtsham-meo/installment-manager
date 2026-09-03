@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { productService } from "../../services/products";
+import { Card, Button, Input, Table, ErrorText } from "../../components/ui";
 
 export default function Products() {
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState({
     name: "",
+    company: "",
     category: "",
     barcode: "",
     cost_price: "",
@@ -16,7 +18,6 @@ export default function Products() {
   const [error, setError] = useState("");
 
   const loadProducts = async () => setProducts(await productService.list());
-
   useEffect(() => {
     loadProducts();
   }, []);
@@ -26,22 +27,25 @@ export default function Products() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingId) {
-      await productService.update(editingId, form);
-    } else {
-      await productService.add(form);
+    try {
+      if (editingId) await productService.update(editingId, form);
+      else await productService.add(form);
+      setForm({
+        name: "",
+        company: "",
+        category: "",
+        barcode: "",
+        cost_price: "",
+        sale_price: "",
+        stock_quantity: "",
+        unit: "pcs",
+      });
+      setEditingId(null);
+      setError("");
+      loadProducts();
+    } catch (err) {
+      setError(err.message);
     }
-    setForm({
-      name: "",
-      category: "",
-      barcode: "",
-      cost_price: "",
-      sale_price: "",
-      stock_quantity: "",
-      unit: "pcs",
-    });
-    setEditingId(null);
-    loadProducts();
   };
 
   const handleEdit = (p) => {
@@ -51,7 +55,6 @@ export default function Products() {
   const handleDelete = async (id) => {
     try {
       await productService.delete(id);
-      setError("");
       loadProducts();
     } catch (err) {
       setError(err.message);
@@ -59,89 +62,99 @@ export default function Products() {
   };
 
   return (
-    <div>
-      <h2>Products</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <input
-          name="name"
-          placeholder="Name"
-          value={form.name}
-          onChange={handleChange}
-          required
-        />
-        <input
-          name="company"
-          placeholder="Company"
-          value={form.company}
-          onChange={handleChange}
-        />
-        <input
-          name="category"
-          placeholder="Category"
-          value={form.category}
-          onChange={handleChange}
-        />
-        <input
-          name="barcode"
-          placeholder="Barcode"
-          value={form.barcode}
-          onChange={handleChange}
-        />
-        <input
-          name="cost_price"
-          type="number"
-          placeholder="Cost Price"
-          value={form.cost_price}
-          onChange={handleChange}
-          required
-        />
-        <input
-          name="sale_price"
-          type="number"
-          placeholder="Sale Price"
-          value={form.sale_price}
-          onChange={handleChange}
-          required
-        />
-        <input
-          name="stock_quantity"
-          type="number"
-          placeholder="Stock"
-          value={form.stock_quantity}
-          onChange={handleChange}
-          required
-        />
-        <button type="submit">{editingId ? "Update" : "Add"} Product</button>
-      </form>
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold">Products</h2>
+      <Card>
+        <ErrorText>{error}</ErrorText>
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-2 md:grid-cols-4 gap-3"
+        >
+          <Input
+            name="name"
+            placeholder="Name"
+            value={form.name}
+            onChange={handleChange}
+            required
+          />
+          <Input
+            name="company"
+            placeholder="Company"
+            value={form.company}
+            onChange={handleChange}
+          />
+          <Input
+            name="category"
+            placeholder="Category"
+            value={form.category}
+            onChange={handleChange}
+          />
+          <Input
+            name="barcode"
+            placeholder="Barcode"
+            value={form.barcode}
+            onChange={handleChange}
+          />
+          <Input
+            name="cost_price"
+            type="number"
+            placeholder="Cost Price"
+            value={form.cost_price}
+            onChange={handleChange}
+            required
+          />
+          <Input
+            name="sale_price"
+            type="number"
+            placeholder="Sale Price"
+            value={form.sale_price}
+            onChange={handleChange}
+            required
+          />
+          <Input
+            name="stock_quantity"
+            type="number"
+            placeholder="Stock"
+            value={form.stock_quantity}
+            onChange={handleChange}
+            required
+          />
+          <Button type="submit">{editingId ? "Update" : "Add"} Product</Button>
+        </form>
+      </Card>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Cost</th>
-            <th>Sale Price</th>
-            <th>Stock</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Card>
+        <Table
+          headers={[
+            "Name",
+            "Company",
+            "Category",
+            "Cost",
+            "Sale Price",
+            "Stock",
+            "Actions",
+          ]}
+        >
           {products.map((p) => (
             <tr key={p.id}>
-              <td>{p.name}</td>
-              <td>{p.category}</td>
-              <td>{p.cost_price}</td>
-              <td>{p.sale_price}</td>
-              <td>{p.stock_quantity}</td>
-              <td>
-                <button onClick={() => handleEdit(p)}>Edit</button>
-                <button onClick={() => handleDelete(p.id)}>Delete</button>
+              <td className="py-2 pr-4">{p.name}</td>
+              <td className="py-2 pr-4">{p.company}</td>
+              <td className="py-2 pr-4">{p.category}</td>
+              <td className="py-2 pr-4">{p.cost_price}</td>
+              <td className="py-2 pr-4">{p.sale_price}</td>
+              <td className="py-2 pr-4">{p.stock_quantity}</td>
+              <td className="py-2 pr-4 space-x-2">
+                <Button variant="secondary" onClick={() => handleEdit(p)}>
+                  Edit
+                </Button>
+                <Button variant="danger" onClick={() => handleDelete(p.id)}>
+                  Delete
+                </Button>
               </td>
             </tr>
           ))}
-        </tbody>
-      </table>
+        </Table>
+      </Card>
     </div>
   );
 }
