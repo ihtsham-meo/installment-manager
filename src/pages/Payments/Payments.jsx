@@ -51,10 +51,15 @@ export default function Payments() {
 
   const confirmVoidPayment = async () => {
     if (!voidReason.trim()) return;
-    await paymentService.void({ paymentId: voidingId, reason: voidReason });
-    setVoidingId(null);
-    loadSales();
-    openSale(selectedSaleId);
+    try {
+      await paymentService.void({ paymentId: voidingId, reason: voidReason });
+      setVoidingId(null);
+      setError("");
+      loadSales();
+      openSale(selectedSaleId);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (

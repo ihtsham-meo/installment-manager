@@ -78,11 +78,15 @@ export default function Sales() {
   };
 
   const confirmVoid = async () => {
-    if (!voidReason || voidingSaleId === null) return;
-    await saleService.void({ saleId: voidingSaleId, reason: voidReason });
-    setVoidingSaleId(null);
-    setVoidReason("");
-    loadAll();
+    if (!voidReason.trim()) return;
+    try {
+      await saleService.void({ saleId: voidingSaleId, reason: voidReason });
+      setVoidingSaleId(null);
+      setError("");
+      loadAll();
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -171,6 +175,7 @@ export default function Sales() {
         <button type="submit">Create Sale</button>
       </form>
 
+      {error && <p style={{ color: "red" }}>{error}</p>}
       <table>
         <thead>
           <tr>
