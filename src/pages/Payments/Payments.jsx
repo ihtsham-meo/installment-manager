@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { saleService } from "../../services/sales";
 import { paymentService } from "../../services/payments";
+import {
+  Card,
+  Button,
+  Input,
+  Select,
+  Table,
+  ErrorText,
+} from "../../components/ui";
 
 export default function Payments() {
   const [sales, setSales] = useState([]);
@@ -63,107 +71,114 @@ export default function Payments() {
   };
 
   return (
-    <div>
-      <h2>Payments</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Customer</th>
-            <th>Total</th>
-            <th>Paid (incl. down payment)</th>
-            <th>Remaining</th>
-            <th>Status</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold">Payments</h2>
+      <ErrorText>{error}</ErrorText>
+
+      <Card>
+        <Table
+          headers={[
+            "Customer",
+            "Total",
+            "Paid (incl. down payment)",
+            "Remaining",
+            "Status",
+            "",
+          ]}
+        >
           {sales.map((s) => (
             <tr key={s.id}>
-              <td>{s.customer_name}</td>
-              <td>{s.total_amount}</td>
-              <td>{Number(s.down_payment) + Number(s.total_paid)}</td>
-              <td>{s.remaining}</td>
-              <td>{s.status}</td>
-              <td>
-                <button onClick={() => openSale(s.id)}>Open</button>
+              <td className="py-2 pr-4">{s.customer_name}</td>
+              <td className="py-2 pr-4">{s.total_amount}</td>
+              <td className="py-2 pr-4">
+                {Number(s.down_payment) + Number(s.total_paid)}
+              </td>
+              <td className="py-2 pr-4">{s.remaining}</td>
+              <td className="py-2 pr-4 capitalize">{s.status}</td>
+              <td className="py-2 pr-4">
+                <Button variant="secondary" onClick={() => openSale(s.id)}>
+                  Open
+                </Button>
               </td>
             </tr>
           ))}
-        </tbody>
-      </table>
+        </Table>
+      </Card>
 
       {selectedSaleId && (
-        <div>
-          <h3>Record Payment</h3>
-          {error && <p style={{ color: "red" }}>{error}</p>}
-          <form onSubmit={handleRecord}>
-            <input
+        <Card className="space-y-4">
+          <h3 className="font-semibold">Record Payment</h3>
+          <form
+            onSubmit={handleRecord}
+            className="grid grid-cols-2 md:grid-cols-4 gap-3"
+          >
+            <Input
               type="number"
               placeholder="Amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
             />
-            <select value={method} onChange={(e) => setMethod(e.target.value)}>
+            <Select value={method} onChange={(e) => setMethod(e.target.value)}>
               <option value="cash">Cash</option>
               <option value="bank">Bank Transfer</option>
               <option value="other">Other</option>
-            </select>
-            <input
+            </Select>
+            <Input
               placeholder="Notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
-            <button type="submit">Record Payment</button>
+            <Button type="submit">Record Payment</Button>
           </form>
 
-          <h4>History</h4>
-          <table>
-            <thead>
-              <tr>
-                <th>Installment #</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Method</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((h) => (
-                <tr key={h.id}>
-                  <td>{h.installment_no}</td>
-                  <td>{h.amount}</td>
-                  <td>{h.payment_date}</td>
-                  <td>{h.payment_method}</td>
-                  <td>
-                    {voidingId === h.id ? (
-                      <>
-                        <input
-                          placeholder="Reason"
-                          value={voidReason}
-                          onChange={(e) => setVoidReason(e.target.value)}
-                        />
-                        <button onClick={confirmVoidPayment}>Confirm</button>
-                        <button onClick={() => setVoidingId(null)}>
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setVoidingId(h.id);
-                          setVoidReason("");
-                        }}
+          <h4 className="font-semibold text-sm text-gray-600 dark:text-gray-300">
+            History
+          </h4>
+          <Table
+            headers={["Installment #", "Amount", "Date", "Method", "Action"]}
+          >
+            {history.map((h) => (
+              <tr key={h.id}>
+                <td className="py-2 pr-4">{h.installment_no}</td>
+                <td className="py-2 pr-4">{h.amount}</td>
+                <td className="py-2 pr-4">{h.payment_date}</td>
+                <td className="py-2 pr-4 capitalize">{h.payment_method}</td>
+                <td className="py-2 pr-4">
+                  {voidingId === h.id ? (
+                    <span className="space-x-2">
+                      <Input
+                        className="inline-block w-32"
+                        placeholder="Reason"
+                        value={voidReason}
+                        onChange={(e) => setVoidReason(e.target.value)}
+                      />
+                      <Button variant="danger" onClick={confirmVoidPayment}>
+                        Confirm
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => setVoidingId(null)}
                       >
-                        Void
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                        Cancel
+                      </Button>
+                    </span>
+                  ) : (
+                    <Button
+                      variant="danger"
+                      onClick={() => {
+                        setVoidingId(h.id);
+                        setVoidReason("");
+                      }}
+                    >
+                      Void
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </Table>
+        </Card>
       )}
     </div>
   );
