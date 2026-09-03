@@ -21,6 +21,7 @@ const MYSQLDUMP_PATH = path.join(MYSQL_BIN_DIR, "mysqldump.exe");
 const MYSQL_CLI_PATH = path.join(MYSQL_BIN_DIR, "mysql.exe");
 const AUTO_BACKUP_DIR = path.join(__dirname, "backups", "auto");
 const AUTO_BACKUP_RETENTION = 30;
+const STAGING_DB = `${DB_NAME}_staging`;
 
 function runDump() {
   return new Promise((resolve, reject) => {
@@ -28,6 +29,7 @@ function runDump() {
       `--host=${DB_HOST}`,
       `--port=${DB_PORT}`,
       `--user=${DB_USER}`,
+      "--set-gtid-purged=OFF",
     ];
     if (DB_PASSWORD) args.push(`--password=${DB_PASSWORD}`);
     args.push(DB_NAME);
@@ -41,6 +43,48 @@ function runDump() {
       code === 0
         ? resolve(output)
         : reject(new Error(`mysqldump exited ${code}: ${errOutput}`)),
+    );
+  });
+}
+
+function runMysqlCommand(extraArgs) {
+  return new Promise((resolve, reject) => {
+    const args = [
+      `--host=${DB_HOST}`,
+      `--port=${DB_PORT}`,
+      `--user=${DB_USER}`,
+      ...extraArgs,
+    ];
+    const proc = spawn(MYSQL_CLI_PATH, args);
+    let errOutput = "";
+    proc.stderr.on("data", (d) => (errOutput += d.toString()));
+    proc.on("exit", (code) =>
+      code === 0
+        ? resolve()
+        : reject(new Error(errOutput || `mysql exited ${code}`)),
+    );
+  });
+}
+
+function importSqlFile(databaseName, sqlFilePath) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(
+      MYSQL_CLI_PATH,
+      [
+        `--host=${DB_HOST}`,
+        `--port=${DB_PORT}`,
+        `--user=${DB_USER}`,
+        databaseName,
+      ],
+      { stdio: ["pipe", "ignore", "pipe"] },
+    );
+    let errOutput = "";
+    proc.stderr.on("data", (d) => (errOutput += d.toString()));
+    fs.createReadStream(sqlFilePath).pipe(proc.stdin);
+    proc.on("exit", (code) =>
+      code === 0
+        ? resolve()
+        : reject(new Error(errOutput || `mysql import exited ${code}`)),
     );
   });
 }
@@ -77,7 +121,9 @@ async function createBackup(destPath, passphrase, backupType = "local") {
 }
 
 async function restoreBackup(sourcePath, passphrase) {
-  const sql = decrypt(fs.readFileSync(sourcePath), passphrase);
+  let sql = decrypt(fs.readFileSync(sourcePath), passphrase);
+  // Strip any GTID_PURGED line, whether it came from an old or new-format backup
+  sql = sql.replace(/^SET @@GLOBAL\.GTID_PURGED.*;\s*$/gim, "");
 
   if (!fs.existsSync(AUTO_BACKUP_DIR))
     fs.mkdirSync(AUTO_BACKUP_DIR, { recursive: true });
@@ -90,34 +136,30 @@ async function restoreBackup(sourcePath, passphrase) {
   const tempSqlPath = path.join(__dirname, "temp-restore.sql");
   fs.writeFileSync(tempSqlPath, sql, "utf8");
 
-  await new Promise((resolve, reject) => {
-    const proc = spawn(MYSQL_CLI_PATH, [
-      `--host=${DB_HOST}`,
-      `--port=${DB_PORT}`,
-      `--user=${DB_USER}`,
-      "-e",
-      `DROP DATABASE IF EXISTS ${DB_NAME}; CREATE DATABASE ${DB_NAME};`,
-    ]);
-    proc.on("exit", (code) =>
-      code === 0
-        ? resolve()
-        : reject(new Error("Failed to reset database before restore")),
+  // Try the import in a throwaway staging DB FIRST — the real database is not touched yet
+  await runMysqlCommand([
+    "-e",
+    `DROP DATABASE IF EXISTS ${STAGING_DB}; CREATE DATABASE ${STAGING_DB};`,
+  ]);
+  try {
+    await importSqlFile(STAGING_DB, tempSqlPath);
+  } catch (err) {
+    await runMysqlCommand(["-e", `DROP DATABASE IF EXISTS ${STAGING_DB};`]);
+    fs.unlinkSync(tempSqlPath);
+    throw new Error(
+      `Backup file could not be applied — your current data was NOT touched. Details: ${err.message}`,
     );
-  });
+  }
 
-  await new Promise((resolve, reject) => {
-    const proc = spawn(
-      MYSQL_CLI_PATH,
-      [`--host=${DB_HOST}`, `--port=${DB_PORT}`, `--user=${DB_USER}`, DB_NAME],
-      { stdio: ["pipe", "inherit", "inherit"] },
-    );
-    fs.createReadStream(tempSqlPath).pipe(proc.stdin);
-    proc.on("exit", (code) => {
-      fs.unlinkSync(tempSqlPath);
-      code === 0 ? resolve() : reject(new Error("mysql import failed"));
-    });
-  });
+  // Staging succeeded — now it's safe to replace the real database
+  await runMysqlCommand([
+    "-e",
+    `DROP DATABASE IF EXISTS ${DB_NAME}; CREATE DATABASE ${DB_NAME};`,
+  ]);
+  await importSqlFile(DB_NAME, tempSqlPath);
+  await runMysqlCommand(["-e", `DROP DATABASE IF EXISTS ${STAGING_DB};`]);
 
+  fs.unlinkSync(tempSqlPath);
   return { restored: true, safetyBackup: safetyPath };
 }
 
