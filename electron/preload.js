@@ -52,4 +52,25 @@ contextBridge.exposeInMainWorld("api", {
       ipcRenderer.invoke("backup:restore", { passphrase }),
     list: () => ipcRenderer.invoke("backup:list"),
   },
+
+  auth: {
+    needsSetup: () => ipcRenderer.invoke("users:needsSetup"),
+    createFirstAdmin: (payload) =>
+      ipcRenderer.invoke("users:createFirstAdmin", payload),
+    login: (payload) => ipcRenderer.invoke("users:login", payload),
+    logout: () => ipcRenderer.invoke("users:logout"),
+    current: () => ipcRenderer.invoke("users:current"),
+  },
+  users: {
+    list: () => ipcRenderer.invoke("users:list"),
+    add: (payload) => ipcRenderer.invoke("users:add", payload),
+    update: (payload) => ipcRenderer.invoke("users:update", payload),
+    resetPassword: (payload) =>
+      ipcRenderer.invoke("users:resetPassword", payload),
+    changeOwnPassword: (payload) =>
+      ipcRenderer.invoke("users:changeOwnPassword", payload),
+  },
+  audit: {
+    list: (payload) => ipcRenderer.invoke("audit:list", payload),
+  },
 });
