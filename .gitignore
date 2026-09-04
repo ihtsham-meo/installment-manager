@@ -5,4 +5,5 @@ electron/resources/mysql-portable/
 electron/mysql-data/
 .env
 electron/resources/mysql-data/
+electron/customer-files/
 electron/ipc-handlers/customers.js
