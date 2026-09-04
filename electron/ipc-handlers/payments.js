@@ -3,6 +3,7 @@ const pool = require("../db");
 const { applyLateFees } = require("../utils/lateFees");
 const { getCurrentUser, requireRole } = require("../session");
 const { logAudit } = require("../audit");
+const { allocatePayment } = require("../utils/paymentAllocation");
 
 function registerPaymentHandlers() {
   ipcMain.handle("payments:listForSale", async (event, saleId) => {
@@ -22,7 +23,7 @@ function registerPaymentHandlers() {
 
   ipcMain.handle(
     "payments:record",
-    async (event, { saleId, amount, payment_method, received_by, notes }) => {
+    async (event, { saleId, amount, payment_method, notes }) => {
       await applyLateFees();
       const conn = await pool.getConnection();
       try {
@@ -33,28 +34,19 @@ function registerPaymentHandlers() {
           [saleId],
         );
 
-        let remainingAmount = Number(amount);
+        const { allocations, unallocated } = allocatePayment(rows, amount);
         const created = [];
 
-        for (const row of rows) {
-          if (remainingAmount <= 0) break;
-          const owed =
-            Number(row.due_amount) +
-            Number(row.late_fee) -
-            Number(row.paid_amount);
-          if (owed <= 0) continue;
-          const applied = Math.min(remainingAmount, owed);
-          const newPaid = Number(row.paid_amount) + applied;
-          const isPaid =
-            newPaid >= Number(row.due_amount) + Number(row.late_fee) - 0.01;
+        for (const alloc of allocations) {
+          const row = rows.find((r) => r.id === alloc.scheduleId);
 
           await conn.query(
             `UPDATE installment_schedule SET paid_amount=?, status=?, paid_date=? WHERE id=?`,
             [
-              newPaid,
-              isPaid ? "paid" : "partial",
-              isPaid ? new Date() : null,
-              row.id,
+              alloc.newPaid,
+              alloc.isPaid ? "paid" : "partial",
+              alloc.isPaid ? new Date() : null,
+              alloc.scheduleId,
             ],
           );
 
@@ -62,8 +54,8 @@ function registerPaymentHandlers() {
             `INSERT INTO payments (sale_id, installment_schedule_id, amount, payment_method, received_by, notes) VALUES (?,?,?,?,?,?)`,
             [
               saleId,
-              row.id,
-              applied,
+              alloc.scheduleId,
+              alloc.applied,
               payment_method || "cash",
               getCurrentUser()?.id || null,
               notes || null,
@@ -72,11 +64,10 @@ function registerPaymentHandlers() {
 
           created.push({
             id: payResult.insertId,
-            installment_schedule_id: row.id,
+            installment_schedule_id: alloc.scheduleId,
             installment_no: row.installment_no,
-            amount: applied,
+            amount: alloc.applied,
           });
-          remainingAmount -= applied;
         }
 
         const [remainingRows] = await conn.query(
@@ -91,7 +82,7 @@ function registerPaymentHandlers() {
 
         await logAudit("record", "payments", saleId, null, { amount });
         await conn.commit();
-        return { payments: created, unallocated: remainingAmount };
+        return { payments: created, unallocated };
       } catch (err) {
         await conn.rollback();
         throw err;
@@ -100,7 +91,6 @@ function registerPaymentHandlers() {
       }
     },
   );
-
   ipcMain.handle(
     "payments:void",
     async (event, { paymentId, reason, voidedBy }) => {
