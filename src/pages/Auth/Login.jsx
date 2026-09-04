@@ -20,8 +20,8 @@ export default function Login({ onLogin }) {
   return (
     <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900">
       <Card className="w-80">
-        <h2 className="text-lg font-bold mb-4 text-brand">
-          Installment Manager
+        <h2 className="text-lg text-center font-bold mb-4 text-brand">
+            Installment Manager
         </h2>
         <ErrorText>{error}</ErrorText>
         <form onSubmit={handleSubmit} className="space-y-3">

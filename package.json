@@ -6,7 +6,9 @@
   "scripts": {
     "start": "electron .",
     "dev:react": "vite",
-    "dev": "cross-env NODE_ENV=development concurrently \"npm run dev:react\" \"wait-on http://localhost:5173 && electron .\""
+    "dev": "cross-env NODE_ENV=development concurrently \"npm run dev:react\" \"wait-on http://localhost:5173 && electron .\"",
+    "test": "jest"
+
   },
   "keywords": [],
   "author": "",

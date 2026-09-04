@@ -32,7 +32,7 @@ export default function Layout({
     <div className="flex h-screen bg-gray-50 dark:bg-neutral-900 text-gray-900 dark:text-gray-100">
       <aside className="w-56 bg-brand dark:bg-brand-dark text-white flex flex-col">
         <div className="p-4 text-lg font-bold border-b border-white/20">
-          Installment Manager
+          Jabir Electronics
         </div>
         <nav className="flex-1 overflow-y-auto">
           {navItems.map((item) => (
