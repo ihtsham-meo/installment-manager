@@ -11,7 +11,10 @@ const registerBackupHandlers = require("./ipc-handlers/backup");
 const backupManager = require("./backup-manager");
 const registerUserHandlers = require("./ipc-handlers/users");
 const registerAuditHandlers = require("./ipc-handlers/audit");
-// inside app.whenReady(), alongside the other registerXHandlers():
+const registerLicenseHandlers = require("./ipc-handlers/license");
+const { getMachineId } = require("./utils/machineId");
+const { verifyLicenseKey } = require("./utils/licenseKeys");
+
 
 let mainWindow;
 
@@ -52,6 +55,7 @@ app.whenReady().then(async () => {
     .catch(console.error);
   registerUserHandlers();
   registerAuditHandlers();
+  registerLicenseHandlers();
   createWindow();
 });
 

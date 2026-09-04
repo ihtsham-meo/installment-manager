@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import { authService } from "./services/auth";
+import { licenseService } from "./services/license";
+import License from "./pages/License/License.jsx";
+import Setup from "./pages/Auth/Setup.jsx";
+import Login from "./pages/Auth/Login.jsx";
+import Layout from "./components/Layout.jsx";
 import Products from "./pages/Products/Products.jsx";
 import Customers from "./pages/Customers/Customers.jsx";
 import Sales from "./pages/Sales/Sales.jsx";
@@ -8,30 +13,38 @@ import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import Reports from "./pages/Reports/Reports.jsx";
 import Backup from "./pages/Backup/Backup.jsx";
 import Users from "./pages/Users/Users.jsx";
-import Setup from "./pages/Auth/Setup.jsx";
-import Login from "./pages/Auth/Login.jsx";
-import Layout from "./components/Layout.jsx";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
+  const [licenseStatus, setLicenseStatus] = useState(null);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [user, setUser] = useState(null);
   const [page, setPage] = useState("dashboard");
 
-  useEffect(() => {
-    (async () => {
-      const setup = await authService.needsSetup();
-      if (setup) {
-        setNeedsSetup(true);
-        setLoading(false);
-        return;
-      }
-      setUser(await authService.current());
+  const bootstrap = async () => {
+    const license = await licenseService.status();
+    setLicenseStatus(license);
+    if (!license.activated) {
       setLoading(false);
-    })();
+      return;
+    }
+
+    const setup = await authService.needsSetup();
+    if (setup) {
+      setNeedsSetup(true);
+      setLoading(false);
+      return;
+    }
+    setUser(await authService.current());
+    setLoading(false);
+  };
+  useEffect(() => {
+    bootstrap();
   }, []);
 
   if (loading) return <p className="p-6">Loading...</p>;
+  if (!licenseStatus.activated)
+    return <License status={licenseStatus} onActivated={bootstrap} />;
   if (needsSetup) return <Setup onDone={() => setNeedsSetup(false)} />;
   if (!user) return <Login onLogin={setUser} />;
 

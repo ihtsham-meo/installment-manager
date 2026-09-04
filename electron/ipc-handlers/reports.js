@@ -1,25 +1,82 @@
 const { ipcMain, dialog } = require("electron");
 const fs = require("fs");
 const pool = require("../db");
+const { applyLateFees } = require("../utils/lateFees");
 
 function registerReportHandlers() {
   ipcMain.handle("reports:dashboard", async () => {
+    await applyLateFees();
+
     const [dueRows] = await pool.query(
-      `SELECT COALESCE(SUM(due_amount + late_fee - paid_amount),0) AS total
-       FROM installment_schedule WHERE due_date = CURDATE() AND status != 'paid'`,
+      `SELECT COALESCE(SUM(GREATEST(ish.due_amount + ish.late_fee - ish.paid_amount, 0)), 0) AS total
+       FROM installment_schedule ish
+       JOIN sales s ON s.id = ish.sale_id
+       WHERE ish.due_date = CURDATE() AND ish.status != 'paid'
+         AND s.voided = 0 AND s.status != 'cancelled'`,
     );
     const [collectedRows] = await pool.query(
-      `SELECT COALESCE(SUM(amount),0) AS total FROM payments WHERE DATE(payment_date) = CURDATE() AND voided = 0`,
+      `SELECT COALESCE(SUM(p.amount), 0) AS total
+       FROM payments p
+       JOIN sales s ON s.id = p.sale_id
+       WHERE DATE(p.payment_date) = CURDATE() AND p.voided = 0 AND s.voided = 0`,
     );
     const [outstandingRows] = await pool.query(
-      `SELECT COALESCE(SUM(due_amount + late_fee - paid_amount),0) AS total
-       FROM installment_schedule WHERE status IN ('pending','partial','overdue')`,
+      `SELECT COALESCE(SUM(GREATEST(ish.due_amount + ish.late_fee - ish.paid_amount, 0)), 0) AS total
+       FROM installment_schedule ish
+       JOIN sales s ON s.id = ish.sale_id
+       WHERE ish.status != 'paid' AND s.voided = 0 AND s.status != 'cancelled'`,
     );
     const [activeRows] = await pool.query(
-      `SELECT COUNT(*) AS cnt FROM sales WHERE status='active'`,
+      `SELECT COUNT(*) AS cnt FROM sales WHERE status = 'active' AND voided = 0`,
     );
     const [overdueRows] = await pool.query(
-      `SELECT COUNT(*) AS cnt FROM installment_schedule WHERE status='overdue'`,
+      `SELECT COUNT(*) AS cnt,
+         COALESCE(SUM(GREATEST(ish.due_amount + ish.late_fee - ish.paid_amount, 0)), 0) AS total
+       FROM installment_schedule ish
+       JOIN sales s ON s.id = ish.sale_id
+       WHERE ish.due_date < CURDATE() AND ish.status != 'paid'
+         AND s.voided = 0 AND s.status != 'cancelled'`,
+    );
+    const [upcomingRows] = await pool.query(
+      `SELECT COALESCE(SUM(GREATEST(ish.due_amount + ish.late_fee - ish.paid_amount, 0)), 0) AS total
+       FROM installment_schedule ish
+       JOIN sales s ON s.id = ish.sale_id
+       WHERE ish.due_date > CURDATE()
+         AND ish.due_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+         AND ish.status != 'paid' AND s.voided = 0 AND s.status != 'cancelled'`,
+    );
+    const [collectionTrend] = await pool.query(
+      `SELECT DATE_FORMAT(p.payment_date, '%Y-%m-%d') AS date, SUM(p.amount) AS total
+       FROM payments p
+       JOIN sales s ON s.id = p.sale_id
+       WHERE p.voided = 0 AND s.voided = 0
+         AND p.payment_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+       GROUP BY DATE(p.payment_date)
+       ORDER BY DATE(p.payment_date) ASC`,
+    );
+    const [recentPayments] = await pool.query(
+      `SELECT p.id, c.full_name AS customer_name, ish.installment_no, p.amount,
+         p.payment_method, DATE_FORMAT(p.payment_date, '%Y-%m-%d %H:%i') AS payment_date
+       FROM payments p
+       JOIN sales s ON s.id = p.sale_id
+       JOIN customers c ON c.id = s.customer_id
+       JOIN installment_schedule ish ON ish.id = p.installment_schedule_id
+       WHERE p.voided = 0 AND s.voided = 0
+       ORDER BY p.payment_date DESC
+       LIMIT 5`,
+    );
+    const [overdueItems] = await pool.query(
+      `SELECT ish.id, c.full_name AS customer_name, ish.installment_no,
+         DATE_FORMAT(ish.due_date, '%Y-%m-%d') AS due_date,
+         DATEDIFF(CURDATE(), ish.due_date) AS days_overdue,
+         GREATEST(ish.due_amount + ish.late_fee - ish.paid_amount, 0) AS outstanding
+       FROM installment_schedule ish
+       JOIN sales s ON s.id = ish.sale_id
+       JOIN customers c ON c.id = s.customer_id
+       WHERE ish.due_date < CURDATE() AND ish.status != 'paid'
+         AND s.voided = 0 AND s.status != 'cancelled'
+       ORDER BY days_overdue DESC, outstanding DESC
+       LIMIT 5`,
     );
 
     return {
@@ -28,6 +85,11 @@ function registerReportHandlers() {
       totalOutstanding: outstandingRows[0].total,
       activePlans: activeRows[0].cnt,
       overdueCount: overdueRows[0].cnt,
+      overdueAmount: overdueRows[0].total,
+      dueNext7Days: upcomingRows[0].total,
+      collectionTrend,
+      recentPayments,
+      overdueItems,
     };
   });
 

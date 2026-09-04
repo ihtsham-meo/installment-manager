@@ -61,6 +61,7 @@ contextBridge.exposeInMainWorld("api", {
     logout: () => ipcRenderer.invoke("users:logout"),
     current: () => ipcRenderer.invoke("users:current"),
   },
+
   users: {
     list: () => ipcRenderer.invoke("users:list"),
     add: (payload) => ipcRenderer.invoke("users:add", payload),
@@ -70,7 +71,14 @@ contextBridge.exposeInMainWorld("api", {
     changeOwnPassword: (payload) =>
       ipcRenderer.invoke("users:changeOwnPassword", payload),
   },
+
   audit: {
     list: (payload) => ipcRenderer.invoke("audit:list", payload),
+  },
+
+  license: {
+    status: () => ipcRenderer.invoke("license:status"),
+    activate: (licenseKey) =>
+      ipcRenderer.invoke("license:activate", { licenseKey }),
   },
 });
