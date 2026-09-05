@@ -3,7 +3,7 @@ import { useState } from "react";
 import { authService } from "../../services/auth";
 import { Card, Button, Input, ErrorText } from "../../components/ui";
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, businessName }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,7 +21,7 @@ export default function Login({ onLogin }) {
     <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900">
       <Card className="w-80">
         <h2 className="text-lg text-center font-bold mb-4 text-brand">
-            Installment Manager
+          {businessName}
         </h2>
         <ErrorText>{error}</ErrorText>
         <form onSubmit={handleSubmit} className="space-y-3">

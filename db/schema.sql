@@ -160,3 +160,13 @@ CREATE TABLE IF NOT EXISTS backups (
     status VARCHAR(30),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(100) UNIQUE NOT NULL,
+    setting_value TEXT
+) ENGINE=InnoDB;
+
+INSERT INTO settings (setting_key, setting_value)
+SELECT 'business_name', 'Installment Manager' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM settings WHERE setting_key = 'business_name')

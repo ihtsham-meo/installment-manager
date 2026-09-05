@@ -3,7 +3,7 @@ import { useState } from "react";
 import { authService } from "../../services/auth";
 import { Card, Button, Input, ErrorText } from "../../components/ui";
 
-export default function Setup({ onDone }) {
+export default function Setup({ onDone, businessName }) {
   const [form, setForm] = useState({
     username: "",
     password: "",
@@ -25,7 +25,7 @@ export default function Setup({ onDone }) {
     <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900">
       <Card className="w-96">
         <h2 className="text-lg font-bold mb-1 text-brand">
-          Installment Manager
+          {businessName}
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           First-time setup: create the admin account
