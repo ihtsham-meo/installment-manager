@@ -18,7 +18,8 @@ function registerReportHandlers() {
       `SELECT COALESCE(SUM(p.amount), 0) AS total
        FROM payments p
        JOIN sales s ON s.id = p.sale_id
-       WHERE DATE(p.payment_date) = CURDATE() AND p.voided = 0 AND s.voided = 0`,
+       WHERE DATE(p.payment_date) = CURDATE() AND p.voided = 0
+         AND s.voided = 0 AND s.status != 'cancelled'`,
     );
     const [outstandingRows] = await pool.query(
       `SELECT COALESCE(SUM(GREATEST(ish.due_amount + ish.late_fee - ish.paid_amount, 0)), 0) AS total
@@ -49,10 +50,11 @@ function registerReportHandlers() {
       `SELECT DATE_FORMAT(p.payment_date, '%Y-%m-%d') AS date, SUM(p.amount) AS total
        FROM payments p
        JOIN sales s ON s.id = p.sale_id
-       WHERE p.voided = 0 AND s.voided = 0
+       WHERE p.voided = 0 AND s.voided = 0 AND s.status != 'cancelled'
          AND p.payment_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-       GROUP BY DATE(p.payment_date)
-       ORDER BY DATE(p.payment_date) ASC`,
+         AND p.payment_date < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+       GROUP BY DATE_FORMAT(p.payment_date, '%Y-%m-%d')
+       ORDER BY date ASC`,
     );
     const [recentPayments] = await pool.query(
       `SELECT p.id, c.full_name AS customer_name, ish.installment_no, p.amount,
@@ -61,7 +63,7 @@ function registerReportHandlers() {
        JOIN sales s ON s.id = p.sale_id
        JOIN customers c ON c.id = s.customer_id
        JOIN installment_schedule ish ON ish.id = p.installment_schedule_id
-       WHERE p.voided = 0 AND s.voided = 0
+       WHERE p.voided = 0 AND s.voided = 0 AND s.status != 'cancelled'
        ORDER BY p.payment_date DESC
        LIMIT 5`,
     );

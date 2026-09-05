@@ -20,12 +20,14 @@ async function applyLateFees() {
   );
   const rule = ruleRows[0] || null;
   const [overdueRows] = await pool.query(
-    `SELECT * FROM installment_schedule WHERE due_date < CURDATE() AND status IN ('pending','partial')`,
+    `SELECT ish.*, DATEDIFF(CURDATE(), ish.due_date) AS days_overdue
+     FROM installment_schedule ish
+     JOIN sales s ON s.id = ish.sale_id
+     WHERE ish.due_date < CURDATE() AND ish.status != 'paid'
+       AND s.voided = 0 AND s.status != 'cancelled'`,
   );
   for (const row of overdueRows) {
-    const daysOverdue = Math.floor(
-      (new Date() - new Date(row.due_date)) / (1000 * 60 * 60 * 24),
-    );
+    const daysOverdue = Number(row.days_overdue);
     const lateFee = calculateLateFee(row.due_amount, daysOverdue, rule);
     await pool.query(
       'UPDATE installment_schedule SET status="overdue", late_fee=? WHERE id=?',

@@ -12,13 +12,12 @@ const backupManager = require("./backup-manager");
 const registerUserHandlers = require("./ipc-handlers/users");
 const registerAuditHandlers = require("./ipc-handlers/audit");
 const registerLicenseHandlers = require("./ipc-handlers/license");
-const { getMachineId } = require("./utils/machineId");
-const { verifyLicenseKey } = require("./utils/licenseKeys");
-
+const registerSettingsHandlers = require("./ipc-handlers/settings");
+const pool = require("./db");
 
 let mainWindow;
 
-function createWindow() {
+async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -28,6 +27,16 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT setting_value FROM settings WHERE setting_key='business_name'",
+    );
+    if (rows[0]) mainWindow.setTitle(rows[0].setting_value);
+  } catch (err) {
+    console.error("Could not load business name for window title:", err);
+  }
+
   if (process.env.NODE_ENV === "development") {
     mainWindow.loadURL("http://localhost:5173");
   } else {
@@ -56,6 +65,7 @@ app.whenReady().then(async () => {
   registerUserHandlers();
   registerAuditHandlers();
   registerLicenseHandlers();
+  registerSettingsHandlers();
   createWindow();
 });
 

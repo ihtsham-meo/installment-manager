@@ -81,4 +81,10 @@ contextBridge.exposeInMainWorld("api", {
     activate: (licenseKey) =>
       ipcRenderer.invoke("license:activate", { licenseKey }),
   },
+
+  settings: {
+    get: () => ipcRenderer.invoke("settings:get"),
+    update: (key, value) =>
+      ipcRenderer.invoke("settings:update", { key, value }),
+  },
 });
